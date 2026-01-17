@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+
+# Build outputs
+build
+.svelte-kit
+dist
+.output
+
+# Development files
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing
+coverage
+.nyc_output
+
+# Storybook
+storybook-static
+.storybook
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Misc
+README.md
+LICENSE
+.editorconfig
+.prettierrc
+.eslintrc
+eslint.config.js
