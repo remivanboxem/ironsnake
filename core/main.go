@@ -13,6 +13,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", helloWorld)
+	http.HandleFunc("/courses", getCoursesHandler)
 
 	port := ":8080"
 	fmt.Printf("Server starting on port %s\n", port)
@@ -20,5 +21,5 @@ func main() {
 }
 
 func helloWorld(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "hello world")
+	fmt.Fprintf(w, "IronSnake API is running!")
 }

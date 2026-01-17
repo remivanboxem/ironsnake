@@ -32,6 +32,11 @@ func InitDB() error {
 		return fmt.Errorf("failed to run migrations: %w", err)
 	}
 
+	// Seed database with fake data if empty
+	if err := SeedDatabase(); err != nil {
+		return fmt.Errorf("failed to seed database: %w", err)
+	}
+
 	return nil
 }
 
@@ -40,7 +45,7 @@ func RunMigrations() error {
 
 	// AutoMigrate will create tables, missing columns, missing indexes, etc.
 	// It will NOT delete unused columns to protect your data
-	err := DB.AutoMigrate(&User{}, &Task{})
+	err := DB.AutoMigrate(&User{}, &Task{}, &Course{}, &CourseTeacher{}, &Role{})
 	if err != nil {
 		return fmt.Errorf("failed to migrate database: %w", err)
 	}
