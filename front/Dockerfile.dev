@@ -1,0 +1,23 @@
+# Development Dockerfile for SvelteKit with hot reload
+FROM node:20-alpine
+
+# Install pnpm
+RUN corepack enable && corepack prepare pnpm@latest --activate
+
+# Set working directory
+WORKDIR /app
+
+# Copy package files
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Install all dependencies (including devDependencies)
+RUN pnpm install --frozen-lockfile
+
+# Copy application files
+COPY . .
+
+# Expose Vite's HMR port
+EXPOSE 3000
+
+# Start the development server
+CMD ["pnpm", "run", "dev", "--host", "0.0.0.0", "--port", "3000"]

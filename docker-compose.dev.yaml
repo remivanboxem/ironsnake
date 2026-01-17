@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: ${POSTGRES_CONTAINER_NAME:-ironsnake-postgres-dev}
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-ironsnake}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ironsnake-network-dev
+
+  core:
+    build:
+      context: ./core
+      dockerfile: Dockerfile.dev
+    container_name: ${CORE_CONTAINER_NAME:-ironsnake-core-dev}
+    environment:
+      DATABASE_URL: "host=${POSTGRES_HOST:-postgres} user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-postgres} dbname=${POSTGRES_DB:-ironsnake} port=5432 sslmode=${POSTGRES_SSLMODE:-disable}"
+    ports:
+      - "${CORE_PORT:-8080}:8080"
+    volumes:
+      - ./core:/app
+      - /app/tmp
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - ironsnake-network-dev
+
+  front:
+    build:
+      context: ./front
+      dockerfile: Dockerfile.dev
+    container_name: ${FRONT_CONTAINER_NAME:-ironsnake-front-dev}
+    environment:
+      NODE_ENV: development
+      ORIGIN: ${ORIGIN:-http://localhost:3000}
+      PUBLIC_API_URL: ${PUBLIC_API_URL:-http://localhost:8080}
+    ports:
+      - "${FRONT_PORT:-3000}:3000"
+    volumes:
+      - ./front:/app
+      - /app/node_modules
+      - /app/.svelte-kit
+    depends_on:
+      - core
+    networks:
+      - ironsnake-network-dev
+
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    container_name: ${PROXY_CONTAINER_NAME:-ironsnake-proxy-dev}
+    ports:
+      - "${PROXY_PORT:-80}:80"
+    depends_on:
+      - front
+      - core
+    networks:
+      - ironsnake-network-dev
+
+volumes:
+  postgres_data_dev:
+
+networks:
+  ironsnake-network-dev:
+    driver: bridge
