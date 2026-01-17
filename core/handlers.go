@@ -9,15 +9,24 @@ import (
 	"github.com/google/uuid"
 )
 
+// AuthorResponse represents the author/creator information
+type AuthorResponse struct {
+	ID        uuid.UUID `json:"id"`
+	Username  string    `json:"username"`
+	FirstName string    `json:"firstName"`
+	LastName  string    `json:"lastName"`
+}
+
 // CourseResponse represents the JSON response structure for a course
 type CourseResponse struct {
-	ID           uuid.UUID `json:"id"`
-	Code         string    `json:"code"`
-	Name         string    `json:"name"`
-	Description  string    `json:"description"`
-	AcademicYear string    `json:"academicYear"`
-	CreatedBy    uuid.UUID `json:"createdBy"`
-	CreatedAt    string    `json:"createdAt"`
+	ID           uuid.UUID       `json:"id"`
+	Code         string          `json:"code"`
+	Name         string          `json:"name"`
+	Description  string          `json:"description"`
+	AcademicYear string          `json:"academicYear"`
+	CreatedBy    uuid.UUID       `json:"createdBy"`
+	Author       AuthorResponse  `json:"author"`
+	CreatedAt    string          `json:"createdAt"`
 }
 
 func getCoursesHandler(w http.ResponseWriter, r *http.Request) {
@@ -27,24 +36,42 @@ func getCoursesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var courses []Course
-	if err := DB.Find(&courses).Error; err != nil {
+	// Query courses with author information
+	type CourseWithAuthor struct {
+		Course
+		AuthorID        uuid.UUID
+		AuthorUsername  string
+		AuthorFirstName string
+		AuthorLastName  string
+	}
+
+	var coursesWithAuthors []CourseWithAuthor
+	if err := DB.Table("courses").
+		Select("courses.*, users.id as author_id, users.username as author_username, users.first_name as author_first_name, users.last_name as author_last_name").
+		Joins("LEFT JOIN users ON users.id = courses.created_by").
+		Find(&coursesWithAuthors).Error; err != nil {
 		http.Error(w, "Failed to fetch courses", http.StatusInternalServerError)
 		log.Printf("Error fetching courses: %v", err)
 		return
 	}
 
 	// Map to response format
-	response := make([]CourseResponse, len(courses))
-	for i, course := range courses {
+	response := make([]CourseResponse, len(coursesWithAuthors))
+	for i, cwa := range coursesWithAuthors {
 		response[i] = CourseResponse{
-			ID:           course.ID,
-			Code:         course.Code,
-			Name:         course.Name,
-			Description:  course.Description,
-			AcademicYear: course.AcademicYear,
-			CreatedBy:    course.CreatedBy,
-			CreatedAt:    course.CreatedAt.Format(time.RFC3339),
+			ID:           cwa.ID,
+			Code:         cwa.Code,
+			Name:         cwa.Name,
+			Description:  cwa.Description,
+			AcademicYear: cwa.AcademicYear,
+			CreatedBy:    cwa.CreatedBy,
+			Author: AuthorResponse{
+				ID:        cwa.AuthorID,
+				Username:  cwa.AuthorUsername,
+				FirstName: cwa.AuthorFirstName,
+				LastName:  cwa.AuthorLastName,
+			},
+			CreatedAt: cwa.CreatedAt.Format(time.RFC3339),
 		}
 	}
 

@@ -11,6 +11,13 @@
 	];
 
 	// Course data from API
+	interface Author {
+		id: string;
+		username: string;
+		firstName: string;
+		lastName: string;
+	}
+
 	interface Course {
 		id: string;
 		code: string;
@@ -18,12 +25,20 @@
 		description: string;
 		academicYear: string;
 		createdBy: string;
+		author: Author;
 		createdAt: string;
 	}
 
 	let courses: Course[] = [];
 	let loading = true;
 	let error: string | null = null;
+
+	// Function to get initials from first and last name
+	function getInitials(firstName: string, lastName: string): string {
+		const firstInitial = firstName?.charAt(0).toUpperCase() || '';
+		const lastInitial = lastName?.charAt(0).toUpperCase() || '';
+		return firstInitial + lastInitial;
+	}
 
 	onMount(async () => {
 		try {
@@ -82,6 +97,16 @@
 						<Card.Content class="p-6">
 							<h3 class="font-bold text-xl text-center">{course.code}</h3>
 							<p class="text-sm text-muted-foreground text-center mt-2">{course.name}</p>
+							
+							<!-- Author Avatar and Info -->
+							<div class="flex items-center justify-center mt-4 gap-2">
+								<div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-sm font-semibold">
+									{getInitials(course.author.firstName, course.author.lastName)}
+								</div>
+								<span class="text-xs text-muted-foreground">
+									{course.author.firstName} {course.author.lastName}
+								</span>
+							</div>
 						</Card.Content>
 					</Card.Root>
 				{/each}
