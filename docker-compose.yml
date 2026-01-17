@@ -25,8 +25,8 @@ services:
     container_name: ${CORE_CONTAINER_NAME:-ironsnake-core}
     environment:
       DATABASE_URL: "host=${POSTGRES_HOST:-postgres} user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD} dbname=${POSTGRES_DB:-ironsnake} port=5432 sslmode=${POSTGRES_SSLMODE:-disable}"
-    ports:
-      - "${CORE_PORT:-8080}:8080"
+    expose:
+      - "8080"
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,10 +40,23 @@ services:
     container_name: ${FRONT_CONTAINER_NAME:-ironsnake-front}
     environment:
       NODE_ENV: production
-      ORIGIN: ${ORIGIN:-http://localhost:3000}
-    ports:
-      - "${FRONT_PORT:-3000}:3000"
+      ORIGIN: ${ORIGIN:-http://localhost:80}
+    expose:
+      - "3000"
     depends_on:
+      - core
+    networks:
+      - ironsnake-network
+
+  proxy:
+    build:
+      context: ./proxy
+      dockerfile: Dockerfile
+    container_name: ${PROXY_CONTAINER_NAME:-ironsnake-proxy}
+    ports:
+      - "${PROXY_PORT:-80}:80"
+    depends_on:
+      - front
       - core
     networks:
       - ironsnake-network
