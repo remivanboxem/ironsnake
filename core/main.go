@@ -13,6 +13,7 @@ func main() {
 	}
 
 	http.HandleFunc("/", helloWorld)
+	http.HandleFunc("/courses/", getCourseByIDHandler)
 	http.HandleFunc("/courses", getCoursesHandler)
 
 	port := ":8080"

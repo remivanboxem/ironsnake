@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import * as Card from '$lib/components/ui/card';
+	import type { Course } from '$lib/types';
+	import { courseService, ApiError } from '$lib/services';
 
 	// Mock data for tasks/recently accessed
 	const recentTasks = [
@@ -9,25 +11,6 @@
 		{ id: 3, title: 'Coder proprement', description: 'Code properly' },
 		{ id: 4, title: 'Math 1', description: 'Mathematics course 1' }
 	];
-
-	// Course data from API
-	interface Author {
-		id: string;
-		username: string;
-		firstName: string;
-		lastName: string;
-	}
-
-	interface Course {
-		id: string;
-		code: string;
-		name: string;
-		description: string;
-		academicYear: string;
-		createdBy: string;
-		author: Author;
-		createdAt: string;
-	}
 
 	let courses: Course[] = [];
 	let loading = true;
@@ -42,16 +25,14 @@
 
 	onMount(async () => {
 		try {
-			const response = await fetch('/api/courses');
-			
-			if (!response.ok) {
-				throw new Error(`Failed to fetch courses: ${response.statusText}`);
-			}
-			
-			courses = await response.json();
+			courses = await courseService.getAllCourses();
 			error = null;
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'An error occurred while fetching courses';
+			if (err instanceof ApiError) {
+				error = `Failed to fetch courses: ${err.message}`;
+			} else {
+				error = err instanceof Error ? err.message : 'An error occurred while fetching courses';
+			}
 			console.error('Error fetching courses:', err);
 		} finally {
 			loading = false;

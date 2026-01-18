@@ -82,3 +82,71 @@ func getCoursesHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
+
+func getCourseByIDHandler(w http.ResponseWriter, r *http.Request) {
+	// Only allow GET method
+	if r.Method != http.MethodGet {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract ID from URL path (format: /courses/:id)
+	path := r.URL.Path
+	id := path[len("/courses/"):]
+	
+	if id == "" {
+		http.Error(w, "Course ID is required", http.StatusBadRequest)
+		return
+	}
+
+	// Parse UUID
+	courseID, err := uuid.Parse(id)
+	if err != nil {
+		http.Error(w, "Invalid course ID format", http.StatusBadRequest)
+		return
+	}
+
+	// Query course with author information
+	type CourseWithAuthor struct {
+		Course
+		AuthorID        uuid.UUID
+		AuthorUsername  string
+		AuthorFirstName string
+		AuthorLastName  string
+	}
+
+	var courseWithAuthor CourseWithAuthor
+	if err := DB.Table("courses").
+		Select("courses.*, users.id as author_id, users.username as author_username, users.first_name as author_first_name, users.last_name as author_last_name").
+		Joins("LEFT JOIN users ON users.id = courses.created_by").
+		Where("courses.id = ?", courseID).
+		First(&courseWithAuthor).Error; err != nil {
+		http.Error(w, "Course not found", http.StatusNotFound)
+		log.Printf("Error fetching course: %v", err)
+		return
+	}
+
+	// Map to response format
+	response := CourseResponse{
+		ID:           courseWithAuthor.ID,
+		Code:         courseWithAuthor.Code,
+		Name:         courseWithAuthor.Name,
+		Description:  courseWithAuthor.Description,
+		AcademicYear: courseWithAuthor.AcademicYear,
+		CreatedBy:    courseWithAuthor.CreatedBy,
+		Author: AuthorResponse{
+			ID:        courseWithAuthor.AuthorID,
+			Username:  courseWithAuthor.AuthorUsername,
+			FirstName: courseWithAuthor.AuthorFirstName,
+			LastName:  courseWithAuthor.AuthorLastName,
+		},
+		CreatedAt: courseWithAuthor.CreatedAt.Format(time.RFC3339),
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Printf("Error encoding response: %v", err)
+		return
+	}
+}
