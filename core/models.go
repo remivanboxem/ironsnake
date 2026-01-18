@@ -10,9 +10,11 @@ type User struct {
 	ID           uuid.UUID `gorm:"type:uuid;primary_key;default:gen_random_uuid()"`
 	Username     string    `gorm:"type:varchar(255);not null;unique"`
 	Email        string    `gorm:"type:varchar(255);not null;unique"`
-	PasswordHash string    `gorm:"type:varchar(255);not null"`
+	PasswordHash string    `gorm:"type:varchar(255)"`
 	FirstName    string    `gorm:"type:varchar(255)"`
 	LastName     string    `gorm:"type:varchar(255)"`
+	AuthProvider string    `gorm:"type:varchar(50);default:'local'"`
+	LDAPEnabled  bool      `gorm:"default:false"`
 	CreatedAt    time.Time `gorm:"type:timestamp;default:now()"`
 	Tasks        []Task    `gorm:"foreignKey:UserID"`
 }

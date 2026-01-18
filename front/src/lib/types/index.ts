@@ -1,4 +1,5 @@
 export type {
+	Author,
 	Course,
 	CourseDetail,
 	Task,
@@ -14,3 +15,4 @@ export type {
 	MCQSubmissionResponse,
 	ProblemResult
 } from './course';
+export type { User } from './user';
