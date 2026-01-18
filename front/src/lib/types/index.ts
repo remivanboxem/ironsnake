@@ -1,4 +1,5 @@
 export type {
+	Author,
 	Course,
 	CourseDetail,
 	Task,
@@ -10,3 +11,4 @@ export type {
 	Syllabus,
 	SummaryEntry
 } from './course';
+export type { User } from './user';

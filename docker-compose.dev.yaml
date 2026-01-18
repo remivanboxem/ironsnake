@@ -25,6 +25,14 @@ services:
     container_name: ${CORE_CONTAINER_NAME:-ironsnake-core-dev}
     environment:
       DATABASE_URL: "host=${POSTGRES_HOST:-postgres} user=${POSTGRES_USER:-postgres} password=${POSTGRES_PASSWORD:-postgres} dbname=${POSTGRES_DB:-ironsnake} port=5432 sslmode=${POSTGRES_SSLMODE:-disable}"
+      LDAP_URL: ${LDAP_URL:-ldap://openldap:389}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-dc=ironsnake,dc=local}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-cn=admin,dc=ironsnake,dc=local}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-admin}
+      LDAP_USER_FILTER: ${LDAP_USER_FILTER:-(uid=%s)}
+      LDAP_USER_BASE_DN: ${LDAP_USER_BASE_DN:-ou=users,dc=ironsnake,dc=local}
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      JWT_EXPIRATION_HOURS: ${JWT_EXPIRATION_HOURS:-24}
     ports:
       - "${CORE_PORT:-8080}:8080"
     volumes:
@@ -36,6 +44,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      openldap:
+        condition: service_started
     networks:
       - ironsnake-network-dev
 
@@ -72,8 +82,46 @@ services:
     networks:
       - ironsnake-network-dev
 
+  openldap:
+    image: osixia/openldap:1.5.0
+    container_name: ${LDAP_CONTAINER_NAME:-ironsnake-openldap-dev}
+    environment:
+      LDAP_ORGANISATION: ${LDAP_ORGANISATION:-IronSnake}
+      LDAP_DOMAIN: ${LDAP_DOMAIN:-ironsnake.local}
+      LDAP_ADMIN_PASSWORD: ${LDAP_ADMIN_PASSWORD:-admin}
+      LDAP_CONFIG_PASSWORD: ${LDAP_CONFIG_PASSWORD:-config}
+      LDAP_RFC2307BIS_SCHEMA: ${LDAP_RFC2307BIS_SCHEMA:-false}
+      LDAP_REMOVE_CONFIG_AFTER_SETUP: ${LDAP_REMOVE_CONFIG_AFTER_SETUP:-true}
+      LDAP_TLS_VERIFY_CLIENT: ${LDAP_TLS_VERIFY_CLIENT:-never}
+      LDAP_SEED_INTERNAL_LDIF_PATH: /container/service/slapd/assets/config/bootstrap/ldif/custom
+    ports:
+      - "${LDAP_PORT:-389}:389"
+      - "${LDAPS_PORT:-636}:636"
+    volumes:
+      - ldap_data_dev:/var/lib/ldap
+      - ldap_config_dev:/etc/ldap/slapd.d
+      - ./ldap/init.ldif:/container/service/slapd/assets/config/bootstrap/ldif/custom/init.ldif:ro
+    networks:
+      - ironsnake-network-dev
+    command: --copy-service
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:0.9.0
+    container_name: ${PHPLDAPADMIN_CONTAINER_NAME:-ironsnake-phpldapadmin-dev}
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: ${PHPLDAPADMIN_LDAP_HOSTS:-openldap}
+      PHPLDAPADMIN_HTTPS: ${PHPLDAPADMIN_HTTPS:-false}
+    ports:
+      - "${PHPLDAPADMIN_PORT:-6443}:80"
+    depends_on:
+      - openldap
+    networks:
+      - ironsnake-network-dev
+
 volumes:
   postgres_data_dev:
+  ldap_data_dev:
+  ldap_config_dev:
 
 networks:
   ironsnake-network-dev:

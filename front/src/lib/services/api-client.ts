@@ -28,7 +28,9 @@ async function handleResponse<T>(response: Response): Promise<T> {
 }
 
 export async function apiGet<T>(endpoint: string): Promise<T> {
-	const response = await fetch(`${API_BASE_URL}${endpoint}`);
+	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+		credentials: 'include'
+	});
 	return handleResponse<T>(response);
 }
 
@@ -38,7 +40,8 @@ export async function apiPost<T, D = unknown>(endpoint: string, data: D): Promis
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		body: JSON.stringify(data)
+		body: JSON.stringify(data),
+		credentials: 'include'
 	});
 	return handleResponse<T>(response);
 }
@@ -49,14 +52,16 @@ export async function apiPut<T, D = unknown>(endpoint: string, data: D): Promise
 		headers: {
 			'Content-Type': 'application/json'
 		},
-		body: JSON.stringify(data)
+		body: JSON.stringify(data),
+		credentials: 'include'
 	});
 	return handleResponse<T>(response);
 }
 
 export async function apiDelete<T>(endpoint: string): Promise<T> {
 	const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-		method: 'DELETE'
+		method: 'DELETE',
+		credentials: 'include'
 	});
 	return handleResponse<T>(response);
 }
