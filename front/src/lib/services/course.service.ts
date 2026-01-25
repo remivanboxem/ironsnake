@@ -1,4 +1,4 @@
-import type { Course } from '$lib/types';
+import type { Course, CourseDetail } from '$lib/types';
 import { apiGet } from './api-client';
 
 /**
@@ -13,9 +13,9 @@ export const courseService = {
 	},
 
 	/**
-	 * Get a specific course by ID
+	 * Get a specific course by ID (returns full details including tasks)
 	 */
-	async getCourseById(id: string): Promise<Course> {
-		return apiGet<Course>(`/courses/${id}`);
+	async getCourseById(id: string): Promise<CourseDetail> {
+		return apiGet<CourseDetail>(`/courses/${id}`);
 	}
 };

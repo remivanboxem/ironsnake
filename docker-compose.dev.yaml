@@ -30,6 +30,7 @@ services:
     volumes:
       - ./core:/app
       - /app/tmp
+      - ./courses:/app/courses
     depends_on:
       postgres:
         condition: service_healthy

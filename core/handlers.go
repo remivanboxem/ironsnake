@@ -4,74 +4,87 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
+	"path/filepath"
 
-	"github.com/google/uuid"
+	"ironsnake/core/courseparser"
 )
 
-// AuthorResponse represents the author/creator information
-type AuthorResponse struct {
-	ID        uuid.UUID `json:"id"`
-	Username  string    `json:"username"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
-}
+// CoursesDir is the path to the courses directory
+var CoursesDir = "courses"
 
 // CourseResponse represents the JSON response structure for a course
 type CourseResponse struct {
-	ID           uuid.UUID       `json:"id"`
-	Code         string          `json:"code"`
-	Name         string          `json:"name"`
-	Description  string          `json:"description"`
-	AcademicYear string          `json:"academicYear"`
-	CreatedBy    uuid.UUID       `json:"createdBy"`
-	Author       AuthorResponse  `json:"author"`
-	CreatedAt    string          `json:"createdAt"`
+	ID         string   `json:"id"`
+	Code       string   `json:"code"`
+	Name       string   `json:"name"`
+	Accessible bool     `json:"accessible"`
+	Admins     []string `json:"admins"`
+	Tutors     []string `json:"tutors"`
+	TaskCount  int      `json:"taskCount"`
+}
+
+// TaskResponse represents a task in the API response
+type TaskResponse struct {
+	ID              string            `json:"id"`
+	Name            string            `json:"name"`
+	Author          string            `json:"author"`
+	EnvironmentType string            `json:"environmentType"`
+	Problems        []ProblemResponse `json:"problems"`
+}
+
+// ProblemResponse represents a problem in the API response
+type ProblemResponse struct {
+	ID     string `json:"id"`
+	Type   string `json:"type"`
+	Name   string `json:"name"`
+	Header string `json:"header"`
+}
+
+// CourseDetailResponse represents the full course detail
+type CourseDetailResponse struct {
+	CourseResponse
+	Tasks    []TaskResponse `json:"tasks"`
+	Syllabus *SyllabusResponse `json:"syllabus,omitempty"`
+}
+
+// SyllabusResponse represents the syllabus in the API response
+type SyllabusResponse struct {
+	Title   string         `json:"title"`
+	Author  string         `json:"author"`
+	Summary []SummaryEntry `json:"summary"`
+}
+
+// SummaryEntry represents a syllabus entry
+type SummaryEntry struct {
+	Title    string         `json:"title"`
+	Path     string         `json:"path,omitempty"`
+	Children []SummaryEntry `json:"children,omitempty"`
 }
 
 func getCoursesHandler(w http.ResponseWriter, r *http.Request) {
-	// Only allow GET method
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
 
-	// Query courses with author information
-	type CourseWithAuthor struct {
-		Course
-		AuthorID        uuid.UUID
-		AuthorUsername  string
-		AuthorFirstName string
-		AuthorLastName  string
-	}
-
-	var coursesWithAuthors []CourseWithAuthor
-	if err := DB.Table("courses").
-		Select("courses.*, users.id as author_id, users.username as author_username, users.first_name as author_first_name, users.last_name as author_last_name").
-		Joins("LEFT JOIN users ON users.id = courses.created_by").
-		Find(&coursesWithAuthors).Error; err != nil {
-		http.Error(w, "Failed to fetch courses", http.StatusInternalServerError)
-		log.Printf("Error fetching courses: %v", err)
+	loader := courseparser.NewCourseLoader()
+	courses, err := loader.LoadAllCourses(CoursesDir)
+	if err != nil {
+		http.Error(w, "Failed to load courses", http.StatusInternalServerError)
+		log.Printf("Error loading courses: %v", err)
 		return
 	}
 
-	// Map to response format
-	response := make([]CourseResponse, len(coursesWithAuthors))
-	for i, cwa := range coursesWithAuthors {
+	response := make([]CourseResponse, len(courses))
+	for i, course := range courses {
 		response[i] = CourseResponse{
-			ID:           cwa.ID,
-			Code:         cwa.Code,
-			Name:         cwa.Name,
-			Description:  cwa.Description,
-			AcademicYear: cwa.AcademicYear,
-			CreatedBy:    cwa.CreatedBy,
-			Author: AuthorResponse{
-				ID:        cwa.AuthorID,
-				Username:  cwa.AuthorUsername,
-				FirstName: cwa.AuthorFirstName,
-				LastName:  cwa.AuthorLastName,
-			},
-			CreatedAt: cwa.CreatedAt.Format(time.RFC3339),
+			ID:         course.CourseID,
+			Code:       course.CourseID,
+			Name:       course.Config.Name,
+			Accessible: course.Config.Accessible,
+			Admins:     course.Config.Admins,
+			Tutors:     course.Config.Tutors,
+			TaskCount:  len(course.Tasks),
 		}
 	}
 
@@ -79,12 +92,10 @@ func getCoursesHandler(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		log.Printf("Error encoding response: %v", err)
-		return
 	}
 }
 
 func getCourseByIDHandler(w http.ResponseWriter, r *http.Request) {
-	// Only allow GET method
 	if r.Method != http.MethodGet {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -92,61 +103,83 @@ func getCourseByIDHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Extract ID from URL path (format: /courses/:id)
 	path := r.URL.Path
-	id := path[len("/courses/"):]
-	
-	if id == "" {
+	courseID := path[len("/courses/"):]
+
+	if courseID == "" {
 		http.Error(w, "Course ID is required", http.StatusBadRequest)
 		return
 	}
 
-	// Parse UUID
-	courseID, err := uuid.Parse(id)
+	// Load the specific course
+	loader := courseparser.NewCourseLoader()
+	coursePath := filepath.Join(CoursesDir, courseID)
+	course, err := loader.LoadCourse(coursePath)
 	if err != nil {
-		http.Error(w, "Invalid course ID format", http.StatusBadRequest)
-		return
-	}
-
-	// Query course with author information
-	type CourseWithAuthor struct {
-		Course
-		AuthorID        uuid.UUID
-		AuthorUsername  string
-		AuthorFirstName string
-		AuthorLastName  string
-	}
-
-	var courseWithAuthor CourseWithAuthor
-	if err := DB.Table("courses").
-		Select("courses.*, users.id as author_id, users.username as author_username, users.first_name as author_first_name, users.last_name as author_last_name").
-		Joins("LEFT JOIN users ON users.id = courses.created_by").
-		Where("courses.id = ?", courseID).
-		First(&courseWithAuthor).Error; err != nil {
 		http.Error(w, "Course not found", http.StatusNotFound)
-		log.Printf("Error fetching course: %v", err)
+		log.Printf("Error loading course %s: %v", courseID, err)
 		return
 	}
 
-	// Map to response format
-	response := CourseResponse{
-		ID:           courseWithAuthor.ID,
-		Code:         courseWithAuthor.Code,
-		Name:         courseWithAuthor.Name,
-		Description:  courseWithAuthor.Description,
-		AcademicYear: courseWithAuthor.AcademicYear,
-		CreatedBy:    courseWithAuthor.CreatedBy,
-		Author: AuthorResponse{
-			ID:        courseWithAuthor.AuthorID,
-			Username:  courseWithAuthor.AuthorUsername,
-			FirstName: courseWithAuthor.AuthorFirstName,
-			LastName:  courseWithAuthor.AuthorLastName,
+	// Build task responses
+	tasks := make([]TaskResponse, 0, len(course.Tasks))
+	for taskID, task := range course.Tasks {
+		problems := make([]ProblemResponse, 0, len(task.Problems))
+		for problemID, problem := range task.Problems {
+			problems = append(problems, ProblemResponse{
+				ID:     problemID,
+				Type:   problem.GetType(),
+				Name:   problem.GetName(),
+				Header: problem.GetHeader(),
+			})
+		}
+
+		tasks = append(tasks, TaskResponse{
+			ID:              taskID,
+			Name:            task.Name,
+			Author:          task.Author,
+			EnvironmentType: task.EnvironmentType,
+			Problems:        problems,
+		})
+	}
+
+	// Build response
+	response := CourseDetailResponse{
+		CourseResponse: CourseResponse{
+			ID:         course.CourseID,
+			Code:       course.CourseID,
+			Name:       course.Config.Name,
+			Accessible: course.Config.Accessible,
+			Admins:     course.Config.Admins,
+			Tutors:     course.Config.Tutors,
+			TaskCount:  len(course.Tasks),
 		},
-		CreatedAt: courseWithAuthor.CreatedAt.Format(time.RFC3339),
+		Tasks: tasks,
+	}
+
+	// Add syllabus if present
+	if course.Syllabus != nil {
+		response.Syllabus = &SyllabusResponse{
+			Title:   course.Syllabus.Book.Book.Title,
+			Author:  course.Syllabus.Book.Book.Author,
+			Summary: convertSummary(course.Syllabus.Summary),
+		}
 	}
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		log.Printf("Error encoding response: %v", err)
-		return
 	}
+}
+
+func convertSummary(entries []courseparser.SummaryEntry) []SummaryEntry {
+	result := make([]SummaryEntry, len(entries))
+	for i, entry := range entries {
+		result[i] = SummaryEntry{
+			Title:    entry.Title,
+			Path:     entry.Path,
+			Children: convertSummary(entry.Children),
+		}
+	}
+	return result
 }

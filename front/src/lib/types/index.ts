@@ -1,1 +1,1 @@
-export type { Author, Course } from './course';
+export type { Course, CourseDetail, Task, Problem, Syllabus, SummaryEntry } from './course';
