@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# variables
+EXERCICE_SUCCEED=0
+EXERCICE_COUNT=1
+
+parsetemplate --output student/binary_to_base64.py binary_to_base64_stud.py
+
+# binary_to_base64 exercice
+number=$((RANDOM % 65536))
+number_binary=$(python3 decimal_to_binary.py $number)
+
+binary_to_base64_student_output=$(run_student python3 student/binary_to_base64.py $number_binary)
+binary_to_base64_expected_output=$(python3 binary_to_base64.py $number_binary)
+
+feedback-msg --id binary_to_base64 --message "Nombre binaire choisi = $number_binary.  Le mot attendu ($binary_to_base64_expected_output) est différent du mot calculé ($binary_to_base64_student_output)."
+
+if grep -P 'import\s+base64' student/binary_to_base64.py >/dev/null; then
+  feedback-result failed
+  feedback-msg --append --message "L'importation de la bibliothèque 'base64' est interdite. Veuillez implémenter la conversion manuellement."
+elif grep -P 'base64\.b64encode' student/binary_to_base64.py >/dev/null; then
+  feedback-result failed
+  feedback-msg --append --message "L'utilisation de la fonction 'base64.b64encode' est interdite. Veuillez implémenter la conversion manuellement."
+elif [ "$binary_to_base64_student_output" != "$binary_to_base64_expected_output" ]; then
+  feedback-result failed
+  if [ "$binary_to_base64_student_output" == "None" ]; then
+    feedback-msg --append --message "La sortie est vide. Assurez-vous que votre fonction retourne une chaîne de caractères représentant le nombre en base64."
+  elif ! [[ "$binary_to_base64_student_output" =~ ^[A-Za-z0-9+/=]+$ ]]; then
+    feedback-msg --append --message "La sortie n'est pas un nombre en base64 valide. Assurez-vous que votre fonction retourne une chaîne de caractères représentant un nombre en base64. Sortie de l'étudiant : '$binary_to_base64_student_output'"
+  else
+    feedback-msg --append --message "La sortie ne correspond pas au résultat attendu. Nombre en base64 attendu : '$binary_to_base64_expected_output', nombre en base64 calculé : '$binary_to_base64_student_output'"
+  fi
+else
+  feedback-result success
+  EXERCICE_SUCCEED=$((EXERCICE_SUCCEED + 1))
+fi
+
+# final feedback
+if [ $EXERCICE_SUCCEED -eq $EXERCICE_COUNT ]; then
+  feedback-result success
+  feedback-msg --message "Félicitations ! Vous avez réussi tous les exercices."
+else
+  feedback-result failed
+  feedback-grade $((EXERCICE_SUCCEED * 100 / EXERCICE_COUNT))
+fi

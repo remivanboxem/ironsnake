@@ -1,0 +1,85 @@
+author: Nicolas M
+contact_url:
+  mailto:nicolas.m@myuni.edu?subject=About the task {task_id} (course
+  {course_id}), IronSnake username {username}
+context: ""
+environment_id: mcq
+environment_parameters: {}
+environment_type: mcq
+file: ""
+input_random: 0
+name: Structures de Données - Quiz
+network_grading: false
+problems:
+  Q1:
+    type: multiple_choice
+    name: Types de structures de données
+    header: |
+      Quelles sont les structures de données linéaires?
+    choices:
+      - text: "Tableau (Array)"
+        valid: true
+      - text: "Liste chaînée (Linked List)"
+        valid: true
+      - text: "Arbre binaire (Binary Tree)"
+        valid: false
+      - text: "Graphe (Graph)"
+        valid: false
+      - text: "Pile (Stack)"
+        valid: true
+      - text: "File (Queue)"
+        valid: true
+    limit: 0
+  Q2:
+    type: multiple_choice
+    name: Complexité temporelle
+    header: |
+      Quelle est la complexité temporelle moyenne pour rechercher un élément dans une table de hachage (Hash Table)?
+    choices:
+      - text: "O(1)"
+        valid: true
+      - text: "O(log n)"
+        valid: false
+      - text: "O(n)"
+        valid: false
+      - text: "O(n²)"
+        valid: false
+    limit: 0
+  Q3:
+    type: multiple_choice
+    name: Opérations sur les piles
+    header: |
+      Quelles opérations sont fondamentales pour une pile (Stack)?
+    choices:
+      - text: "push()"
+        valid: true
+      - text: "pop()"
+        valid: true
+      - text: "enqueue()"
+        valid: false
+      - text: "dequeue()"
+        valid: false
+      - text: "peek()"
+        valid: true
+    limit: 0
+  Q4:
+    type: match
+    name: Complexité d'insertion
+    header: |
+      Quelle est la complexité temporelle pour insérer un élément au début d'une liste chaînée simple?
+    answer: "O(1)"
+  Q5:
+    type: multiple_choice
+    name: Arbres binaires de recherche
+    header: |
+      Dans un arbre binaire de recherche (BST), pour chaque nœud:
+    choices:
+      - text: "Tous les éléments du sous-arbre gauche sont plus petits"
+        valid: true
+      - text: "Tous les éléments du sous-arbre droit sont plus grands"
+        valid: true
+      - text: "Les feuilles sont toujours au même niveau"
+        valid: false
+      - text: "Chaque nœud a exactement deux enfants"
+        valid: false
+    limit: 0

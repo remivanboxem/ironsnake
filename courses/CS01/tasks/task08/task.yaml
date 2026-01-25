@@ -1,0 +1,141 @@
+author: Nicolas M
+contact_url:
+  mailto:nicolas.m@myuni.edu?subject=About the task {task_id} (course
+  {course_id}), IronSnake username {username}
+context: ""
+environment_id: mcq
+environment_parameters: {}
+environment_type: mcq
+file: ""
+input_random: 15
+name: Programmation Orientée Objet - Concepts Fondamentaux
+network_grading: false
+problems:
+  Q1:
+    type: multiple_choice
+    name: Principes de la POO
+    header: |
+      Quels sont les quatre piliers de la programmation orientée objet?
+    choices:
+      - text: "Encapsulation"
+        valid: true
+      - text: "Abstraction"
+        valid: true
+      - text: "Héritage"
+        valid: true
+      - text: "Polymorphisme"
+        valid: true
+      - text: "Compilation"
+        valid: false
+      - text: "Récursivité"
+        valid: false
+    limit: 0
+
+  Q2:
+    type: match
+    name: Modificateur d'accès
+    header: |
+      En Python, quel préfixe utilise-t-on pour indiquer qu'un attribut est privé par convention?
+    answer: "_"
+
+  Q3:
+    type: multiple_choice
+    name: Héritage
+    header: |
+      Qu'est-ce que l'héritage permet de faire?
+    choices:
+      - text: "Réutiliser le code d'une classe existante"
+        valid: true
+      - text: "Créer une hiérarchie de classes"
+        valid: true
+      - text: "Surcharger des méthodes"
+        valid: true
+      - text: "Cacher l'implémentation interne"
+        valid: false
+    limit: 0
+
+  Q4:
+    type: multiple_choice
+    name: Polymorphisme
+    header: |
+      Le polymorphisme permet:
+    choices:
+      - text: "D'utiliser une interface commune pour différents types"
+        valid: true
+      - text: "De surcharger des méthodes"
+        valid: true
+      - text: "D'utiliser des méthodes avec le même nom mais des comportements différents"
+        valid: true
+      - text: "De créer plusieurs instances d'une classe"
+        valid: false
+    limit: 0
+
+  Q5:
+    type: match
+    name: Méthode spéciale
+    header: |
+      Quel est le nom de la méthode spéciale appelée lors de la création d'une instance en Python?
+    answer: "__init__"
+
+  Q6:
+    type: multiple_choice
+    name: Classes abstraites
+    header: |
+      Une classe abstraite:
+    choices:
+      - text: "Ne peut pas être instanciée directement"
+        valid: true
+      - text: "Peut contenir des méthodes abstraites"
+        valid: true
+      - text: "Sert de modèle pour d'autres classes"
+        valid: true
+      - text: "Ne peut pas avoir de méthodes concrètes"
+        valid: false
+    limit: 0
+
+  Q7:
+    type: match
+    name: Mot-clé d'héritage
+    header: |
+      Combien de classes parentes une classe Python peut-elle hériter directement (héritage multiple)?
+    answer: "plusieurs"
+
+  Q8:
+    type: multiple_choice
+    name: Encapsulation
+    header: |
+      L'encapsulation permet de:
+    choices:
+      - text: "Cacher les détails d'implémentation"
+        valid: true
+      - text: "Contrôler l'accès aux données"
+        valid: true
+      - text: "Protéger l'intégrité des données"
+        valid: true
+      - text: "Améliorer les performances"
+        valid: false
+    limit: 0
+
+  Q9:
+    type: match
+    name: Méthode de classe
+    header: |
+      Quel décorateur Python utilise-t-on pour définir une méthode de classe?
+    answer: "@classmethod"
+
+  Q10:
+    type: multiple_choice
+    name: Attributs vs Méthodes
+    header: |
+      Quelle est la différence entre un attribut et une méthode?
+    choices:
+      - text: "Un attribut stocke des données, une méthode effectue des actions"
+        valid: true
+      - text: "Les méthodes sont des fonctions définies dans une classe"
+        valid: true
+      - text: "Les attributs ne peuvent pas être modifiés"
+        valid: false
+      - text: "Les méthodes ne peuvent pas retourner de valeur"
+        valid: false
+    limit: 0
+regenerate_input_random: "on"
