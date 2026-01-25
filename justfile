@@ -9,7 +9,6 @@ stop:
 
 clean:
     docker compose down --remove-orphans
-    docker volume prune -f
 
 build:
     docker compose build
