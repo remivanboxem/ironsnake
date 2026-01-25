@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { courseService, codeService, ApiError, type RunCodeResponse } from '$lib/services';
-	import type { TaskDetail, CourseDetail } from '$lib/types';
+	import type { TaskDetail, CourseDetail, MCQSubmissionResponse, MCQAnswer } from '$lib/types';
 	import { page } from '$app/state';
 	import * as Card from '$lib/components/ui/card';
 	import { Markdown } from '$lib/components/ui/markdown';
@@ -26,8 +26,67 @@
 	let runningProblems: Set<string> = $state(new Set());
 	let outputs: Map<string, RunCodeResponse> = $state(new Map());
 
+	// MCQ state
+	let mcqAnswers: Map<string, MCQAnswer> = $state(new SvelteMap());
+	let mcqSubmitting = $state(false);
+	let mcqResult: MCQSubmissionResponse | null = $state(null);
+	let mcqError: string | null = $state(null);
+
 	// Track the current mode for reactive updates
 	let currentMode = $derived(mode.current);
+
+	// Check if this task has MCQ problems
+	let hasMCQProblems = $derived(
+		task?.problems.some((p) => p.type === 'multiple_choice' || p.type === 'match') ?? false
+	);
+
+	// Check if this is an MCQ-only environment
+	let isMCQEnvironment = $derived(task?.environmentType === 'mcq');
+
+	// Get all MCQ problem IDs
+	let mcqProblemIds = $derived(
+		task?.problems
+			.filter((p) => p.type === 'multiple_choice' || p.type === 'match')
+			.map((p) => p.id) ?? []
+	);
+
+	// Check if all MCQ questions have been answered
+	let allMCQAnswered = $derived(() => {
+		if (!task) return false;
+		for (const problemId of mcqProblemIds) {
+			const answer = mcqAnswers.get(problemId);
+			if (!answer) return false;
+			const problem = task.problems.find((p) => p.id === problemId);
+			if (!problem) return false;
+			if (problem.type === 'multiple_choice') {
+				if (!answer.selectedIndices || answer.selectedIndices.length === 0) return false;
+			} else if (problem.type === 'match') {
+				if (!answer.textAnswer || answer.textAnswer.trim() === '') return false;
+			}
+		}
+		return true;
+	});
+
+	// Count answered questions
+	let answeredCount = $derived(() => {
+		if (!task) return 0;
+		let count = 0;
+		for (const problemId of mcqProblemIds) {
+			const answer = mcqAnswers.get(problemId);
+			if (!answer) continue;
+			const problem = task.problems.find((p) => p.id === problemId);
+			if (!problem) continue;
+			if (problem.type === 'multiple_choice') {
+				if (answer.selectedIndices && answer.selectedIndices.length > 0) count++;
+			} else if (problem.type === 'match') {
+				if (answer.textAnswer && answer.textAnswer.trim() !== '') count++;
+			}
+		}
+		return count;
+	});
+
+	// Check if submission is allowed
+	let canSubmit = $derived(isMCQEnvironment ? allMCQAnswered() : mcqAnswers.size > 0);
 
 	function initEditor(element: HTMLElement, params: [string, string]) {
 		const [problemId, initialCode] = params;
@@ -110,6 +169,62 @@
 		} finally {
 			runningProblems = new Set([...runningProblems].filter((id) => id !== problemId));
 		}
+	}
+
+	// MCQ functions
+	function toggleChoice(problemId: string, choiceIndex: number) {
+		const current = mcqAnswers.get(problemId) || { selectedIndices: [] };
+		const indices = current.selectedIndices || [];
+		const newIndices = indices.includes(choiceIndex)
+			? indices.filter((i) => i !== choiceIndex)
+			: [...indices, choiceIndex];
+		mcqAnswers.set(problemId, { selectedIndices: newIndices });
+		// Trigger reactivity
+		mcqAnswers = new Map(mcqAnswers);
+	}
+
+	function isChoiceSelected(problemId: string, choiceIndex: number): boolean {
+		const answer = mcqAnswers.get(problemId);
+		return answer?.selectedIndices?.includes(choiceIndex) ?? false;
+	}
+
+	function updateMatchAnswer(problemId: string, text: string) {
+		mcqAnswers.set(problemId, { textAnswer: text });
+		mcqAnswers = new Map(mcqAnswers);
+	}
+
+	function getMatchAnswer(problemId: string): string {
+		return mcqAnswers.get(problemId)?.textAnswer ?? '';
+	}
+
+	async function submitMCQ() {
+		if (!task) return;
+
+		mcqSubmitting = true;
+		mcqError = null;
+
+		try {
+			const answers: Record<string, MCQAnswer> = {};
+			mcqAnswers.forEach((answer, problemId) => {
+				answers[problemId] = answer;
+			});
+
+			mcqResult = await courseService.submitMCQ(task.courseId, task.id, { answers });
+		} catch (err) {
+			if (err instanceof ApiError) {
+				mcqError = `Failed to submit: ${err.message}`;
+			} else {
+				mcqError = err instanceof Error ? err.message : 'An error occurred while submitting';
+			}
+			console.error('Error submitting MCQ:', err);
+		} finally {
+			mcqSubmitting = false;
+		}
+	}
+
+	function getProblemResult(problemId: string): boolean | null {
+		if (!mcqResult) return null;
+		return mcqResult.results[problemId]?.correct ?? null;
 	}
 
 	function getProblemTypeLabel(type: string): string {
@@ -351,32 +466,232 @@
 							{/if}
 
 							{#if problem.type === 'multiple_choice' && problem.choices}
+								{@const result = getProblemResult(problem.id)}
 								<div class="mt-4">
-									<p class="mb-2 text-sm font-medium">Choices:</p>
+									<p class="mb-2 text-sm font-medium">
+										Select your answer{problem.limit === 0 || (problem.limit && problem.limit > 1)
+											? 's'
+											: ''}:
+									</p>
 									<ul class="space-y-2">
 										{#each problem.choices as choice, choiceIndex (choiceIndex)}
-											<li class="flex items-center gap-2 rounded-md bg-muted/50 p-2">
-												<span
-													class="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium"
+											{@const isSelected = isChoiceSelected(problem.id, choiceIndex)}
+											<li>
+												<button
+													type="button"
+													onclick={() => toggleChoice(problem.id, choiceIndex)}
+													class="flex w-full cursor-pointer items-center gap-3 rounded-md p-3 text-left transition-colors
+														{isSelected ? 'bg-primary/20 ring-2 ring-primary' : 'bg-muted/50 hover:bg-muted'}"
 												>
-													{String.fromCharCode(65 + choiceIndex)}
-												</span>
-												<span>{choice.text}</span>
+													<span
+														class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium
+															{isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'}"
+													>
+														{String.fromCharCode(65 + choiceIndex)}
+													</span>
+													<span class="flex-1">{choice.text}</span>
+													{#if isSelected}
+														<svg
+															xmlns="http://www.w3.org/2000/svg"
+															width="20"
+															height="20"
+															viewBox="0 0 24 24"
+															fill="none"
+															stroke="currentColor"
+															stroke-width="2"
+															stroke-linecap="round"
+															stroke-linejoin="round"
+															class="text-primary"
+														>
+															<polyline points="20 6 9 17 4 12"></polyline>
+														</svg>
+													{/if}
+												</button>
 											</li>
 										{/each}
 									</ul>
+									{#if result !== null}
+										<div
+											class="mt-3 flex items-center gap-2 rounded-md p-2 {result
+												? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+												: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}"
+										>
+											{#if result}
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="20"
+													height="20"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+													<polyline points="22 4 12 14.01 9 11.01"></polyline>
+												</svg>
+												<span class="font-medium">Correct!</span>
+											{:else}
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="20"
+													height="20"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<circle cx="12" cy="12" r="10"></circle>
+													<line x1="15" y1="9" x2="9" y2="15"></line>
+													<line x1="9" y1="9" x2="15" y2="15"></line>
+												</svg>
+												<span class="font-medium">Incorrect</span>
+											{/if}
+										</div>
+									{/if}
 								</div>
 							{/if}
 
 							{#if problem.type === 'match'}
-								<div class="mt-4 rounded-md bg-muted/50 p-3">
-									<p class="text-sm text-muted-foreground">This is a fill-in-the-blank question.</p>
+								{@const result = getProblemResult(problem.id)}
+								<div class="mt-4">
+									<label for="match-{problem.id}" class="mb-2 block text-sm font-medium">
+										Your answer:
+									</label>
+									<input
+										id="match-{problem.id}"
+										type="text"
+										value={getMatchAnswer(problem.id)}
+										oninput={(e) => updateMatchAnswer(problem.id, e.currentTarget.value)}
+										placeholder="Type your answer here..."
+										class="w-full rounded-md border border-border bg-background px-3 py-2 text-sm focus:ring-2 focus:ring-primary focus:outline-none"
+									/>
+									{#if result !== null}
+										<div
+											class="mt-3 flex items-center gap-2 rounded-md p-2 {result
+												? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400'
+												: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}"
+										>
+											{#if result}
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="20"
+													height="20"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+													<polyline points="22 4 12 14.01 9 11.01"></polyline>
+												</svg>
+												<span class="font-medium">Correct!</span>
+											{:else}
+												<svg
+													xmlns="http://www.w3.org/2000/svg"
+													width="20"
+													height="20"
+													viewBox="0 0 24 24"
+													fill="none"
+													stroke="currentColor"
+													stroke-width="2"
+													stroke-linecap="round"
+													stroke-linejoin="round"
+												>
+													<circle cx="12" cy="12" r="10"></circle>
+													<line x1="15" y1="9" x2="9" y2="15"></line>
+													<line x1="9" y1="9" x2="15" y2="15"></line>
+												</svg>
+												<span class="font-medium">Incorrect</span>
+											{/if}
+										</div>
+									{/if}
 								</div>
 							{/if}
 						</Card.Content>
 					</Card.Root>
 				{/each}
 			</div>
+
+			<!-- MCQ Submit Button and Results -->
+			{#if hasMCQProblems}
+				<div class="mt-8">
+					{#if mcqResult}
+						<!-- Results Summary -->
+						<div
+							class="rounded-lg border p-6 {mcqResult.score >= 50
+								? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+								: 'border-red-500 bg-red-50 dark:bg-red-900/20'}"
+						>
+							<h3 class="mb-4 text-xl font-semibold">Results</h3>
+							<div class="grid grid-cols-3 gap-4 text-center">
+								<div>
+									<p
+										class="text-3xl font-bold {mcqResult.score >= 50
+											? 'text-green-600 dark:text-green-400'
+											: 'text-red-600 dark:text-red-400'}"
+									>
+										{mcqResult.score.toFixed(0)}%
+									</p>
+									<p class="text-sm text-muted-foreground">Score</p>
+								</div>
+								<div>
+									<p class="text-3xl font-bold text-green-600 dark:text-green-400">
+										{mcqResult.correct}
+									</p>
+									<p class="text-sm text-muted-foreground">Correct</p>
+								</div>
+								<div>
+									<p class="text-3xl font-bold">{mcqResult.total}</p>
+									<p class="text-sm text-muted-foreground">Total</p>
+								</div>
+							</div>
+						</div>
+					{/if}
+
+					<!-- Submit Button (always visible for resubmission) -->
+					<div class="mt-4">
+						{#if isMCQEnvironment && !allMCQAnswered()}
+							<p class="mb-2 text-center text-sm text-muted-foreground">
+								Please answer all questions before submitting ({answeredCount()}/{mcqProblemIds.length})
+							</p>
+						{/if}
+						<button
+							onclick={submitMCQ}
+							disabled={mcqSubmitting || !canSubmit}
+							class="flex w-full items-center justify-center gap-2 rounded-md bg-primary px-6 py-3 text-lg font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							{#if mcqSubmitting}
+								<svg
+									class="animate-spin"
+									xmlns="http://www.w3.org/2000/svg"
+									width="20"
+									height="20"
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									stroke-width="2"
+								>
+									<path d="M21 12a9 9 0 1 1-6.219-8.56" />
+								</svg>
+								Submitting...
+							{:else if mcqResult}
+								Resubmit Answers
+							{:else}
+								Submit Answers
+							{/if}
+						</button>
+						{#if mcqError}
+							<p class="mt-2 text-center text-sm text-red-500">{mcqError}</p>
+						{/if}
+					</div>
+				</div>
+			{/if}
 		</section>
 
 		<!-- Contact -->

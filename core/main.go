@@ -23,7 +23,12 @@ func main() {
 			remaining := r.URL.Path[len("/courses/"):]
 			for i := 0; i < len(remaining)-6; i++ {
 				if remaining[i:i+7] == "/tasks/" {
-					getTaskByIDHandler(w, r)
+					// Route based on HTTP method
+					if r.Method == http.MethodPost || r.Method == http.MethodOptions {
+						submitMCQHandler(w, r)
+					} else {
+						getTaskByIDHandler(w, r)
+					}
 					return
 				}
 			}

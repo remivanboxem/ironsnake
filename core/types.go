@@ -34,14 +34,13 @@ type ProblemDetailResponse struct {
 	Language string   `json:"language,omitempty"` // for code problems
 	Default  string   `json:"default,omitempty"`  // for code problems
 	Choices  []Choice `json:"choices,omitempty"`  // for multiple choice
-	Answer   string   `json:"answer,omitempty"`   // for match problems
 	Limit    int      `json:"limit,omitempty"`    // for multiple choice
+	// Note: Answer field is intentionally not included to prevent exposing correct answers
 }
 
-// Choice represents a multiple choice option
+// Choice represents a multiple choice option (for API response - does not expose correct answer)
 type Choice struct {
-	Text  string `json:"text"`
-	Valid bool   `json:"valid"`
+	Text string `json:"text"`
 }
 
 // EnvironmentLimits represents resource limits
@@ -98,4 +97,32 @@ type RunCodeResponse struct {
 	Output   string `json:"output"`
 	Error    string `json:"error,omitempty"`
 	ExitCode int    `json:"exitCode"`
+}
+
+// MCQSubmissionRequest represents a student's MCQ submission
+type MCQSubmissionRequest struct {
+	// Answers maps problem ID to selected choice indices (for multiple_choice)
+	// or text answer (for match problems)
+	Answers map[string]MCQAnswer `json:"answers"`
+}
+
+// MCQAnswer represents an answer to a single problem
+type MCQAnswer struct {
+	// SelectedIndices contains the indices of selected choices (for multiple_choice)
+	SelectedIndices []int `json:"selectedIndices,omitempty"`
+	// TextAnswer contains the text answer (for match problems)
+	TextAnswer string `json:"textAnswer,omitempty"`
+}
+
+// MCQSubmissionResponse represents the result of an MCQ submission
+type MCQSubmissionResponse struct {
+	Score   float64                   `json:"score"`   // Score as percentage (0-100)
+	Results map[string]ProblemResult  `json:"results"` // Results per problem
+	Total   int                       `json:"total"`   // Total number of problems
+	Correct int                       `json:"correct"` // Number of correct answers
+}
+
+// ProblemResult represents the result for a single problem
+type ProblemResult struct {
+	Correct bool `json:"correct"`
 }

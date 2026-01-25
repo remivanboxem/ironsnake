@@ -1,5 +1,11 @@
-import type { Course, CourseDetail, TaskDetail } from '$lib/types';
-import { apiGet } from './api-client';
+import type {
+	Course,
+	CourseDetail,
+	TaskDetail,
+	MCQSubmissionRequest,
+	MCQSubmissionResponse
+} from '$lib/types';
+import { apiGet, apiPost } from './api-client';
 
 /**
  * Course service for managing course-related API calls
@@ -24,5 +30,19 @@ export const courseService = {
 	 */
 	async getTaskById(courseId: string, taskId: string): Promise<TaskDetail> {
 		return apiGet<TaskDetail>(`/courses/${courseId}/tasks/${taskId}`);
+	},
+
+	/**
+	 * Submit MCQ answers for grading
+	 */
+	async submitMCQ(
+		courseId: string,
+		taskId: string,
+		submission: MCQSubmissionRequest
+	): Promise<MCQSubmissionResponse> {
+		return apiPost<MCQSubmissionResponse, MCQSubmissionRequest>(
+			`/courses/${courseId}/tasks/${taskId}`,
+			submission
+		);
 	}
 };

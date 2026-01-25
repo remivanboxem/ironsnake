@@ -43,15 +43,34 @@ export interface CourseDetail extends Course {
 // Task detail types
 export interface Choice {
 	text: string;
-	valid: boolean;
 }
 
 export interface ProblemDetail extends Problem {
 	language?: string; // for code problems
 	default?: string; // for code problems
 	choices?: Choice[]; // for multiple choice
-	answer?: string; // for match problems
 	limit?: number; // for multiple choice
+}
+
+// MCQ Submission types
+export interface MCQAnswer {
+	selectedIndices?: number[]; // for multiple choice
+	textAnswer?: string; // for match problems
+}
+
+export interface MCQSubmissionRequest {
+	answers: Record<string, MCQAnswer>;
+}
+
+export interface ProblemResult {
+	correct: boolean;
+}
+
+export interface MCQSubmissionResponse {
+	score: number;
+	results: Record<string, ProblemResult>;
+	total: number;
+	correct: number;
 }
 
 export interface EnvironmentLimits {

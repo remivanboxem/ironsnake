@@ -8,5 +8,9 @@ export type {
 	Choice,
 	EnvironmentLimits,
 	Syllabus,
-	SummaryEntry
+	SummaryEntry,
+	MCQAnswer,
+	MCQSubmissionRequest,
+	MCQSubmissionResponse,
+	ProblemResult
 } from './course';

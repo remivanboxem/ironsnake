@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"ironsnake/core/courseparser"
 )
@@ -44,6 +45,174 @@ func getCoursesHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
 		log.Printf("Error encoding response: %v", err)
 	}
+}
+
+// submitMCQHandler handles POST requests for MCQ submissions
+func submitMCQHandler(w http.ResponseWriter, r *http.Request) {
+	// Set CORS headers
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Extract IDs from URL path (format: /courses/:courseID/tasks/:taskID)
+	path := r.URL.Path
+	remaining := path[len("/courses/"):]
+
+	// Find the /tasks/ separator
+	tasksIdx := -1
+	for i := 0; i < len(remaining)-6; i++ {
+		if remaining[i:i+7] == "/tasks/" {
+			tasksIdx = i
+			break
+		}
+	}
+
+	if tasksIdx == -1 {
+		http.Error(w, "Invalid URL format", http.StatusBadRequest)
+		return
+	}
+
+	courseID := remaining[:tasksIdx]
+	taskID := remaining[tasksIdx+7:]
+
+	if courseID == "" || taskID == "" {
+		http.Error(w, "Course ID and Task ID are required", http.StatusBadRequest)
+		return
+	}
+
+	// Parse the request body
+	var submission MCQSubmissionRequest
+	if err := json.NewDecoder(r.Body).Decode(&submission); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		log.Printf("Error parsing submission: %v", err)
+		return
+	}
+
+	// Load the course
+	loader := courseparser.NewCourseLoader()
+	coursePath := filepath.Join(CoursesDir, courseID)
+	course, err := loader.LoadCourse(coursePath)
+	if err != nil {
+		http.Error(w, "Course not found", http.StatusNotFound)
+		log.Printf("Error loading course %s: %v", courseID, err)
+		return
+	}
+
+	// Find the task
+	task, ok := course.Tasks[taskID]
+	if !ok {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		log.Printf("Task %s not found in course %s", taskID, courseID)
+		return
+	}
+
+	// Grade the submission
+	results := make(map[string]ProblemResult)
+	correctCount := 0
+	totalProblems := 0
+
+	for problemID, problem := range task.Problems {
+		answer, hasAnswer := submission.Answers[problemID]
+
+		var isCorrect bool
+
+		switch p := problem.(type) {
+		case *courseparser.MultipleChoiceProblem:
+			totalProblems++
+			if hasAnswer {
+				isCorrect = gradeMultipleChoice(p, answer.SelectedIndices)
+			}
+		case *courseparser.MatchProblem:
+			totalProblems++
+			if hasAnswer {
+				isCorrect = gradeMatch(p, answer.TextAnswer)
+			}
+		default:
+			// Skip non-gradable problems (e.g., code problems)
+			continue
+		}
+
+		if isCorrect {
+			correctCount++
+		}
+		results[problemID] = ProblemResult{Correct: isCorrect}
+	}
+
+	// Calculate score
+	var score float64
+	if totalProblems > 0 {
+		score = float64(correctCount) / float64(totalProblems) * 100
+	}
+
+	// Build response
+	response := MCQSubmissionResponse{
+		Score:   score,
+		Results: results,
+		Total:   totalProblems,
+		Correct: correctCount,
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Printf("Error encoding response: %v", err)
+	}
+}
+
+// gradeMultipleChoice checks if the selected choices match the correct answers
+func gradeMultipleChoice(problem *courseparser.MultipleChoiceProblem, selectedIndices []int) bool {
+	if len(problem.Choices) == 0 {
+		return false
+	}
+
+	// Build a set of correct indices
+	correctIndices := make(map[int]bool)
+	for i, choice := range problem.Choices {
+		if choice.Valid {
+			correctIndices[i] = true
+		}
+	}
+
+	// Build a set of selected indices
+	selectedSet := make(map[int]bool)
+	for _, idx := range selectedIndices {
+		// Validate index is within bounds
+		if idx < 0 || idx >= len(problem.Choices) {
+			return false
+		}
+		selectedSet[idx] = true
+	}
+
+	// Check if selected matches correct exactly
+	if len(selectedSet) != len(correctIndices) {
+		return false
+	}
+
+	for idx := range correctIndices {
+		if !selectedSet[idx] {
+			return false
+		}
+	}
+
+	return true
+}
+
+// gradeMatch checks if the text answer matches the expected answer
+func gradeMatch(problem *courseparser.MatchProblem, textAnswer string) bool {
+	// Case-insensitive comparison, trimming whitespace
+	expected := strings.TrimSpace(strings.ToLower(problem.Answer))
+	given := strings.TrimSpace(strings.ToLower(textAnswer))
+	return expected == given
 }
 
 func getCourseByIDHandler(w http.ResponseWriter, r *http.Request) {
@@ -204,16 +373,16 @@ func getTaskByIDHandler(w http.ResponseWriter, r *http.Request) {
 			problemResp.Language = p.Language
 			problemResp.Default = p.Default
 		case *courseparser.MultipleChoiceProblem:
+			// Only expose choice text, not the correct answer (Valid field)
 			problemResp.Choices = make([]Choice, len(p.Choices))
 			for i, c := range p.Choices {
 				problemResp.Choices[i] = Choice{
-					Text:  c.Text,
-					Valid: c.Valid,
+					Text: c.Text,
 				}
 			}
 			problemResp.Limit = p.Limit
 		case *courseparser.MatchProblem:
-			problemResp.Answer = p.Answer
+			// Do not expose the answer for match problems
 		}
 
 		problems = append(problems, problemResp)
