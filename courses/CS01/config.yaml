@@ -1,0 +1,16 @@
+accessible: false
+name: "[CS01] Introduction to Computer Science"
+admins:
+  - jmachin
+  - nicolasm
+tutors:
+  - damiend
+groups_student_choice: false
+allow_unregister: true
+allow_preview: false
+registration: true
+registration_password: null
+registration_ac: null
+registration_ac_accept: true
+registration_ac_list: []
+tags: {}

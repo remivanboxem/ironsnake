@@ -1,0 +1,64 @@
+author: Jean Machin
+contact_url:
+  mailto:jean.machin@myuni.edu?subject=About the task {task_id} (course
+  {course_id}), IronSnake username {username}
+context: ""
+environment_id: mcq
+environment_parameters: {}
+environment_type: mcq
+file: ""
+input_random: 10
+name: Conversion Base2 vers Base10 (non-signé)
+network_grading: false
+problems:
+  Q1:
+    type: match
+    name: ""
+    header: Représentation du nombre '110'.
+    answer: "6"
+  Q2:
+    type: match
+    name: ""
+    header: Représentation du nombre '111'.
+    answer: "7"
+  Q3:
+    type: match
+    name: ""
+    header: Représentation du nombre '1001'.
+    answer: "9"
+  Q4:
+    type: match
+    name: ""
+    header: Représentation du nombre '11101'.
+    answer: "29"
+  Q5:
+    type: match
+    name: ""
+    header: Représentation du nombre '11001'.
+    answer: "25"
+  Q6:
+    type: match
+    name: ""
+    header: Représentation du nombre '10001'.
+    answer: "17"
+  Q7:
+    type: match
+    name: ""
+    header: Représentation du nombre '100000'.
+    answer: "32"
+  Q8:
+    type: match
+    name: ""
+    header: Représentation du nombre '10110'.
+    answer: "22"
+  Q9:
+    type: match
+    name: ""
+    header: Représentation du nombre '11111'.
+    answer: "31"
+  Q10:
+    type: match
+    name: ""
+    header: Représentation du nombre '1'.
+    answer: "1"
+regenerate_input_random: "on"

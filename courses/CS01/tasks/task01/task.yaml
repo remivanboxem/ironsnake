@@ -1,0 +1,28 @@
+author: Jean Machin
+contact_url:
+  mailto:jean.machin@myuni.edu?subject=About the task {task_id} (course
+  {course_id}), IronSnake username {username}
+context: ""
+environment_id: python3
+environment_parameters:
+  limits:
+    time: "3"
+    hard_time: ""
+    memory: "100"
+  run_cmd: ""
+environment_type: docker
+file: ""
+name: Convertisseur binaire vers Base64
+network_grading: false
+problems:
+  binary_to_base64:
+    type: code
+    name: Convertisseur d'un mot binaire vers Base64
+    header: |
+      Implémentez une fonction ``binary_to_base64`` prenant en entrée un nombre binaire :math:`b \in [0,111111111]_2` et retournant sa représentation en base 64.
+    language: python
+    default: |
+      def binary_to_base64(binary_str: str) -> str:
+
+
+          return

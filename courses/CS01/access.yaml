@@ -1,0 +1,42 @@
+dispenser_data:
+  config:
+    task01:
+      accessibility: 2026-01-25 19:15:03/2026-01-29 19:15:07/2026-01-28 19:15:04
+      evaluation_mode: best
+      no_stored_submissions: 3
+      submission_limit:
+        amount: 1
+        period: 1
+    task02:
+      accessibility: true
+    task03:
+      accessibility: true
+    task04:
+      accessibility: 2026-01-26 09:00:00/2026-02-02 23:59:59/2026-02-01 23:59:59
+      evaluation_mode: best
+      no_stored_submissions: 5
+      submission_limit:
+        amount: 3
+        period: 60
+    task05:
+      accessibility: true
+      evaluation_mode: last
+    task06:
+      accessibility: 2026-01-27 09:00:00/2026-02-10 23:59:59/2026-02-08 23:59:59
+      evaluation_mode: best
+      no_stored_submissions: 5
+      submission_limit:
+        amount: 5
+        period: 120
+    task07:
+      accessibility: 2026-01-28 09:00:00/2026-02-15 23:59:59/2026-02-12 23:59:59
+      evaluation_mode: best
+      no_stored_submissions: 4
+      submission_limit:
+        amount: 3
+        period: 90
+    task08:
+      accessibility: true
+      evaluation_mode: last
+  imported: false
+  converted: false

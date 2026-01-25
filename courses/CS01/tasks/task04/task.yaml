@@ -1,0 +1,45 @@
+author: Jean Machin
+contact_url:
+  mailto:jean.machin@myuni.edu?subject=About the task {task_id} (course
+  {course_id}), IronSnake username {username}
+context: ""
+environment_id: python3
+environment_parameters:
+  limits:
+    time: "5"
+    hard_time: ""
+    memory: "200"
+  run_cmd: ""
+environment_type: docker
+file: ""
+name: Algorithmes de Tri - Bubble Sort
+network_grading: false
+problems:
+  bubble_sort:
+    type: code
+    name: Implémentation du tri à bulles
+    header: |
+      Implémentez l'algorithme de tri à bulles (Bubble Sort) qui prend une liste de nombres entiers et retourne la liste triée par ordre croissant.
+
+      **Complexité attendue:** O(n²)
+
+      **Exemple:**
+      ```python
+      bubble_sort([64, 34, 25, 12, 22, 11, 90])
+      # Retourne: [11, 12, 22, 25, 34, 64, 90]
+      ```
+    language: python
+    default: |
+      def bubble_sort(arr: list[int]) -> list[int]:
+          """
+          Trie une liste d'entiers en utilisant l'algorithme Bubble Sort.
+
+          Args:
+              arr: Liste d'entiers à trier
+
+          Returns:
+              Liste triée par ordre croissant
+          """
+
+
+          return arr

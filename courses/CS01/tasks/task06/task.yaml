@@ -1,0 +1,76 @@
+author: Damien D
+contact_url:
+  mailto:damien.d@myuni.edu?subject=About the task {task_id} (course
+  {course_id}), IronSnake username {username}
+context: ""
+environment_id: python3
+environment_parameters:
+  limits:
+    time: "10"
+    hard_time: ""
+    memory: "300"
+  run_cmd: ""
+environment_type: docker
+file: ""
+name: Analyse de Texte - Comptage de Mots
+network_grading: false
+problems:
+  word_frequency:
+    type: code
+    name: Calculer la fréquence des mots
+    header: |
+      Implémentez une fonction qui analyse un texte et retourne un dictionnaire contenant la fréquence de chaque mot.
+
+      **Règles:**
+      - Ignorer la casse (convertir tout en minuscules)
+      - Supprimer la ponctuation
+      - Les mots sont séparés par des espaces
+
+      **Exemple:**
+      ```python
+      word_frequency("Hello world! Hello Python. Python is great.")
+      # Retourne: {'hello': 2, 'world': 1, 'python': 2, 'is': 1, 'great': 1}
+      ```
+    language: python
+    default: |
+      def word_frequency(text: str) -> dict[str, int]:
+          """
+          Calcule la fréquence de chaque mot dans le texte.
+
+          Args:
+              text: Texte à analyser
+
+          Returns:
+              Dictionnaire {mot: fréquence}
+          """
+
+
+          return {}
+
+  most_common:
+    type: code
+    name: Trouver les N mots les plus fréquents
+    header: |
+      Implémentez une fonction qui retourne les N mots les plus fréquents d'un texte, triés par fréquence décroissante.
+
+      **Exemple:**
+      ```python
+      most_common_words("the cat and the dog and the bird", 2)
+      # Retourne: [('the', 3), ('and', 2)]
+      ```
+    language: python
+    default: |
+      def most_common_words(text: str, n: int) -> list[tuple[str, int]]:
+          """
+          Retourne les N mots les plus fréquents.
+
+          Args:
+              text: Texte à analyser
+              n: Nombre de mots à retourner
+
+          Returns:
+              Liste de tuples (mot, fréquence) triée par fréquence décroissante
+          """
+
+
+          return []

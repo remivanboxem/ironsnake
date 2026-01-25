@@ -1,0 +1,113 @@
+author: Jean Machin
+contact_url:
+  mailto:jean.machin@myuni.edu?subject=About the task {task_id} (course
+  {course_id}), IronSnake username {username}
+context: ""
+environment_id: python3
+environment_parameters:
+  limits:
+    time: "8"
+    hard_time: ""
+    memory: "250"
+  run_cmd: ""
+environment_type: docker
+file: ""
+name: Récursivité - Fibonacci et Factorielle
+network_grading: false
+problems:
+  fibonacci:
+    type: code
+    name: Suite de Fibonacci récursive
+    header: |
+      Implémentez la suite de Fibonacci de manière récursive.
+
+      **Définition:**
+      - F(0) = 0
+      - F(1) = 1
+      - F(n) = F(n-1) + F(n-2) pour n > 1
+
+      **Exemple:**
+      ```python
+      fibonacci(0)  # Retourne: 0
+      fibonacci(1)  # Retourne: 1
+      fibonacci(7)  # Retourne: 13
+      fibonacci(10) # Retourne: 55
+      ```
+    language: python
+    default: |
+      def fibonacci(n: int) -> int:
+          """
+          Calcule le n-ième nombre de Fibonacci.
+
+          Args:
+              n: Indice dans la suite de Fibonacci (n >= 0)
+
+          Returns:
+              Le n-ième nombre de Fibonacci
+          """
+
+
+          return 0
+
+  factorial:
+    type: code
+    name: Factorielle récursive
+    header: |
+      Implémentez le calcul de la factorielle de manière récursive.
+
+      **Définition:**
+      - 0! = 1
+      - n! = n × (n-1)! pour n > 0
+
+      **Exemple:**
+      ```python
+      factorial(0)  # Retourne: 1
+      factorial(5)  # Retourne: 120
+      factorial(10) # Retourne: 3628800
+      ```
+    language: python
+    default: |
+      def factorial(n: int) -> int:
+          """
+          Calcule la factorielle de n.
+
+          Args:
+              n: Nombre entier (n >= 0)
+
+          Returns:
+              n!
+          """
+
+
+          return 1
+
+  power:
+    type: code
+    name: Puissance récursive optimisée
+    header: |
+      Implémentez le calcul de x^n de manière récursive en utilisant l'exponentiation rapide.
+
+      **Astuce:** Utilisez la propriété x^n = (x^(n/2))² quand n est pair.
+
+      **Exemple:**
+      ```python
+      power(2, 10)  # Retourne: 1024
+      power(3, 4)   # Retourne: 81
+      power(5, 0)   # Retourne: 1
+      ```
+    language: python
+    default: |
+      def power(x: int, n: int) -> int:
+          """
+          Calcule x^n de manière récursive.
+
+          Args:
+              x: Base
+              n: Exposant (n >= 0)
+
+          Returns:
+              x^n
+          """
+
+
+          return 0
