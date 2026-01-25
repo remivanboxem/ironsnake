@@ -1,14 +1,66 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { courseService, ApiError } from '$lib/services';
-	import type { TaskDetail, ProblemDetail } from '$lib/types';
+	import type { TaskDetail } from '$lib/types';
 	import { page } from '$app/state';
 	import * as Card from '$lib/components/ui/card';
 	import { Markdown } from '$lib/components/ui/markdown';
+	import { EditorView, basicSetup } from 'codemirror';
+	import { python } from '@codemirror/lang-python';
+	import { oneDark } from '@codemirror/theme-one-dark';
+	import { EditorState } from '@codemirror/state';
 
 	let task: TaskDetail | null = null;
 	let error: string | null = null;
 	let loading = true;
+
+	// Store editor instances and code values per problem
+	let editors: Map<string, EditorView> = new Map();
+	let codeValues: Map<string, string> = new Map();
+
+	function initEditor(element: HTMLElement, params: [string, string]) {
+		const [problemId, initialCode] = params;
+		if (editors.has(problemId)) return;
+
+		codeValues.set(problemId, initialCode);
+
+		const state = EditorState.create({
+			doc: initialCode,
+			extensions: [
+				basicSetup,
+				python(),
+				oneDark,
+				EditorView.updateListener.of((update) => {
+					if (update.docChanged) {
+						codeValues.set(problemId, update.state.doc.toString());
+					}
+				}),
+				EditorView.theme({
+					'&': { height: '300px' },
+					'.cm-scroller': { overflow: 'auto' }
+				})
+			]
+		});
+
+		const editor = new EditorView({
+			state,
+			parent: element
+		});
+
+		editors.set(problemId, editor);
+
+		return {
+			destroy() {
+				editor.destroy();
+				editors.delete(problemId);
+			}
+		};
+	}
+
+	function runCode(problemId: string) {
+		const code = codeValues.get(problemId) || '';
+		alert(`Running code for problem ${problemId}:\n\n${code}`);
+	}
 
 	function getProblemTypeLabel(type: string): string {
 		switch (type) {
@@ -173,8 +225,22 @@
 							<!-- Type-specific content -->
 							{#if problem.type === 'code' && problem.default}
 								<div class="mt-4">
-									<p class="text-sm font-medium mb-2">Template Code ({problem.language}):</p>
-									<pre class="bg-muted p-4 rounded-md overflow-x-auto text-sm"><code>{problem.default}</code></pre>
+									<div class="flex items-center justify-between mb-2">
+										<p class="text-sm font-medium">Code Editor ({problem.language}):</p>
+										<button
+											onclick={() => runCode(problem.id)}
+											class="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors"
+										>
+											<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+												<path d="M8 5v14l11-7z"/>
+											</svg>
+											Run
+										</button>
+									</div>
+									<div
+										class="rounded-md overflow-hidden border border-border"
+										use:initEditor={[problem.id, problem.default]}
+									></div>
 								</div>
 							{/if}
 
