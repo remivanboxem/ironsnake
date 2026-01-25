@@ -56,6 +56,19 @@ type Choice struct {
 	Valid bool   `json:"valid"`
 }
 
+// RunCodeRequest represents the request body for code execution
+type RunCodeRequest struct {
+	Code     string `json:"code"`
+	Language string `json:"language"`
+}
+
+// RunCodeResponse represents the response from code execution
+type RunCodeResponse struct {
+	Output   string `json:"output"`
+	Error    string `json:"error,omitempty"`
+	ExitCode int    `json:"exitCode"`
+}
+
 // EnvironmentLimits represents resource limits
 type EnvironmentLimits struct {
 	Time     string `json:"time"`
@@ -327,6 +340,47 @@ func getTaskByIDHandler(w http.ResponseWriter, r *http.Request) {
 			HardTime: task.EnvironmentParameters.Limits.HardTime,
 			Memory:   task.EnvironmentParameters.Limits.Memory,
 		}
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		http.Error(w, "Failed to encode response", http.StatusInternalServerError)
+		log.Printf("Error encoding response: %v", err)
+	}
+}
+
+func runCodeHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Set CORS headers for the frontend
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+	w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+
+	if r.Method == http.MethodOptions {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
+	// Parse request body
+	var req RunCodeRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		log.Printf("Error decoding request: %v", err)
+		return
+	}
+
+	// Mock execution - in the future this will actually run the code
+	log.Printf("Received code execution request for language: %s", req.Language)
+	log.Printf("Code:\n%s", req.Code)
+
+	// Generate mock output
+	response := RunCodeResponse{
+		Output:   "Hello, World!\n\n[Mock output - code execution not yet implemented]\nYour code was received successfully.",
+		ExitCode: 0,
 	}
 
 	w.Header().Set("Content-Type", "application/json")

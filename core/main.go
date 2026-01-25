@@ -14,6 +14,7 @@ func main() {
 
 	http.HandleFunc("/", helloWorld)
 	http.HandleFunc("/courses", getCoursesHandler)
+	http.HandleFunc("/run", runCodeHandler)
 
 	// Task routes need to be registered before course routes due to path matching
 	http.HandleFunc("/courses/", func(w http.ResponseWriter, r *http.Request) {

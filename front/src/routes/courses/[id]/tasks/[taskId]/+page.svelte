@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { courseService, ApiError } from '$lib/services';
+	import { courseService, codeService, ApiError, type RunCodeResponse } from '$lib/services';
 	import type { TaskDetail } from '$lib/types';
 	import { page } from '$app/state';
 	import * as Card from '$lib/components/ui/card';
@@ -9,14 +9,19 @@
 	import { python } from '@codemirror/lang-python';
 	import { oneDark } from '@codemirror/theme-one-dark';
 	import { EditorState } from '@codemirror/state';
+	import { SvelteMap } from 'svelte/reactivity';
 
-	let task: TaskDetail | null = null;
-	let error: string | null = null;
-	let loading = true;
+	let task: TaskDetail | null = $state(null);
+	let error: string | null = $state(null);
+	let loading = $state(true);
 
 	// Store editor instances and code values per problem
-	let editors: Map<string, EditorView> = new Map();
-	let codeValues: Map<string, string> = new Map();
+	let editors: Map<string, EditorView> = new SvelteMap();
+	let codeValues: Map<string, string> = new SvelteMap();
+
+	// Store execution state per problem
+	let runningProblems: Set<string> = $state(new Set());
+	let outputs: Map<string, RunCodeResponse> = $state(new Map());
 
 	function initEditor(element: HTMLElement, params: [string, string]) {
 		const [problemId, initialCode] = params;
@@ -57,9 +62,23 @@
 		};
 	}
 
-	function runCode(problemId: string) {
+	async function runCode(problemId: string, language: string) {
 		const code = codeValues.get(problemId) || '';
-		alert(`Running code for problem ${problemId}:\n\n${code}`);
+
+		// Mark as running
+		runningProblems = new Set([...runningProblems, problemId]);
+
+		try {
+			const result = await codeService.runCode(code, language);
+			outputs = new Map([...outputs, [problemId, result]]);
+		} catch (err) {
+			outputs = new Map([
+				...outputs,
+				[problemId, { output: '', error: err instanceof Error ? err.message : 'Unknown error', exitCode: 1 }]
+			]);
+		} finally {
+			runningProblems = new Set([...runningProblems].filter((id) => id !== problemId));
+		}
 	}
 
 	function getProblemTypeLabel(type: string): string {
@@ -224,23 +243,51 @@
 
 							<!-- Type-specific content -->
 							{#if problem.type === 'code' && problem.default}
+								{@const isRunning = runningProblems.has(problem.id)}
+								{@const output = outputs.get(problem.id)}
 								<div class="mt-4">
 									<div class="flex items-center justify-between mb-2">
 										<p class="text-sm font-medium">Code Editor ({problem.language}):</p>
 										<button
-											onclick={() => runCode(problem.id)}
-											class="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors"
+											onclick={() => runCode(problem.id, problem.language || 'python')}
+											disabled={isRunning}
+											class="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-green-800 disabled:cursor-not-allowed text-white text-sm font-medium rounded-md transition-colors"
 										>
-											<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-												<path d="M8 5v14l11-7z"/>
-											</svg>
-											Run
+											{#if isRunning}
+												<svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+													<path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+												</svg>
+												Running...
+											{:else}
+												<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+													<path d="M8 5v14l11-7z"/>
+												</svg>
+												Run
+											{/if}
 										</button>
 									</div>
 									<div
 										class="rounded-md overflow-hidden border border-border"
 										use:initEditor={[problem.id, problem.default]}
 									></div>
+
+									<!-- Output display -->
+									{#if output}
+										<div class="mt-4">
+											<p class="text-sm font-medium mb-2">Output:</p>
+											<div class="bg-zinc-900 text-zinc-100 p-4 rounded-md font-mono text-sm overflow-x-auto">
+												{#if output.error}
+													<div class="text-red-400">{output.error}</div>
+												{/if}
+												{#if output.output}
+													<pre class="whitespace-pre-wrap">{output.output}</pre>
+												{/if}
+												<div class="mt-2 pt-2 border-t border-zinc-700 text-xs text-zinc-500">
+													Exit code: {output.exitCode}
+												</div>
+											</div>
+										</div>
+									{/if}
 								</div>
 							{/if}
 
