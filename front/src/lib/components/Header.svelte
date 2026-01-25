@@ -17,11 +17,13 @@
 	<div class="container mx-auto flex h-16 items-center justify-between gap-4 px-4">
 		{#if isLoggedIn}
 			<!-- Logo -->
-			<div
-				class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-xl font-bold text-primary-foreground"
-			>
-				IS
-			</div>
+			 <a href="/">
+				<div
+					class="flex h-12 w-12 items-center justify-center rounded-lg bg-primary text-xl font-bold text-primary-foreground"
+				>
+					IS
+				</div>
+			</a>
 
 			<!-- Search Bar -->
 			<div class="relative max-w-2xl flex-1">

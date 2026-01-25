@@ -74,7 +74,7 @@
 		{:else}
 			<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 				{#each courses as course (course.id)}
-					<Card.Root class="hover:shadow-lg transition-shadow cursor-pointer">
+					<Card.Root class="hover:shadow-lg transition-shadow cursor-pointer" >
 						<Card.Content class="p-6">
 							<h3 class="font-bold text-xl text-center">{course.code}</h3>
 							<p class="text-sm text-muted-foreground text-center mt-2">{course.name}</p>
@@ -89,6 +89,9 @@
 								</span>
 							</div>
 						</Card.Content>
+						<Card.Footer class="p-4 border-t text-center text-sm text-muted-foreground">
+							<a href={`/courses/${course.id}`} class="text-primary hover:underline">View Course Details</a>
+						</Card.Footer>
 					</Card.Root>
 				{/each}
 			</div>
