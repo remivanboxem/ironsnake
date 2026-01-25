@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { courseService, codeService, ApiError, type RunCodeResponse } from '$lib/services';
-	import type { TaskDetail } from '$lib/types';
+	import type { TaskDetail, CourseDetail } from '$lib/types';
 	import { page } from '$app/state';
 	import * as Card from '$lib/components/ui/card';
 	import { Markdown } from '$lib/components/ui/markdown';
@@ -13,6 +13,7 @@
 	import { SvelteMap } from 'svelte/reactivity';
 
 	let task: TaskDetail | null = $state(null);
+	let course: CourseDetail | null = $state(null);
 	let error: string | null = $state(null);
 	let loading = $state(true);
 
@@ -148,7 +149,10 @@
 		}
 
 		try {
-			task = await courseService.getTaskById(courseId, taskId);
+			[task, course] = await Promise.all([
+				courseService.getTaskById(courseId, taskId),
+				courseService.getCourseById(courseId)
+			]);
 			error = null;
 		} catch (err) {
 			if (err instanceof ApiError) {
@@ -177,9 +181,11 @@
 		<nav class="mb-4 text-sm">
 			<a href="/" class="text-primary hover:underline">Home</a>
 			<span class="mx-2 text-muted-foreground">/</span>
-			<a href={`/courses/${task.courseId}`} class="text-primary hover:underline">{task.courseId}</a>
+			<a href={`/courses/${task.courseId}`} class="text-primary hover:underline"
+				>{course?.name ?? task.courseId}</a
+			>
 			<span class="mx-2 text-muted-foreground">/</span>
-			<span class="text-muted-foreground">{task.id}</span>
+			<span class="text-muted-foreground">{task.name}</span>
 		</nav>
 
 		<!-- Header -->
