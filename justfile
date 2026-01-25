@@ -15,3 +15,6 @@ build:
 
 build-dev:
     docker compose -f docker-compose.dev.yaml build
+
+logs:
+    docker compose logs -f
