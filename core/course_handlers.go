@@ -121,7 +121,9 @@ func submitMCQHandler(w http.ResponseWriter, r *http.Request) {
 	correctCount := 0
 	totalProblems := 0
 
-	for problemID, problem := range task.Problems {
+	for _, op := range task.Problems.Problems {
+		problemID := op.ID
+		problem := op.Problem
 		answer, hasAnswer := submission.Answers[problemID]
 
 		var isCorrect bool
@@ -243,13 +245,13 @@ func getCourseByIDHandler(w http.ResponseWriter, r *http.Request) {
 	// Build task responses
 	tasks := make([]TaskResponse, 0, len(course.Tasks))
 	for taskID, task := range course.Tasks {
-		problems := make([]ProblemResponse, 0, len(task.Problems))
-		for problemID, problem := range task.Problems {
+		problems := make([]ProblemResponse, 0, task.Problems.Len())
+		for _, op := range task.Problems.Problems {
 			problems = append(problems, ProblemResponse{
-				ID:     problemID,
-				Type:   problem.GetType(),
-				Name:   problem.GetName(),
-				Header: problem.GetHeader(),
+				ID:     op.ID,
+				Type:   op.Problem.GetType(),
+				Name:   op.Problem.GetName(),
+				Header: op.Problem.GetHeader(),
 			})
 		}
 
@@ -355,20 +357,20 @@ func getTaskByIDHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build problem responses with full details
-	problems := make([]ProblemDetailResponse, 0, len(task.Problems))
-	for problemID, problem := range task.Problems {
+	// Build problem responses with full details (preserving order)
+	problems := make([]ProblemDetailResponse, 0, task.Problems.Len())
+	for _, op := range task.Problems.Problems {
 		problemResp := ProblemDetailResponse{
 			ProblemResponse: ProblemResponse{
-				ID:     problemID,
-				Type:   problem.GetType(),
-				Name:   problem.GetName(),
-				Header: problem.GetHeader(),
+				ID:     op.ID,
+				Type:   op.Problem.GetType(),
+				Name:   op.Problem.GetName(),
+				Header: op.Problem.GetHeader(),
 			},
 		}
 
 		// Add type-specific fields
-		switch p := problem.(type) {
+		switch p := op.Problem.(type) {
 		case *courseparser.CodeProblem:
 			problemResp.Language = p.Language
 			problemResp.Default = p.Default

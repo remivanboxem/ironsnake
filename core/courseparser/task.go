@@ -20,18 +20,42 @@ type EnvironmentParameters struct {
 	RunCmd string             `yaml:"run_cmd,omitempty"`
 }
 
-// ProblemMap is a map of problem ID to Problem, with custom YAML unmarshaling
-type ProblemMap map[string]Problem
+// OrderedProblem wraps a Problem with its ID to maintain order
+type OrderedProblem struct {
+	ID      string
+	Problem Problem
+}
 
-// UnmarshalYAML handles polymorphic deserialization of problems
+// ProblemMap is an ordered list of problems that preserves YAML order
+type ProblemMap struct {
+	Problems []OrderedProblem
+	byID     map[string]Problem
+}
+
+// Get returns a problem by ID
+func (pm *ProblemMap) Get(id string) (Problem, bool) {
+	if pm.byID == nil {
+		return nil, false
+	}
+	p, ok := pm.byID[id]
+	return p, ok
+}
+
+// Len returns the number of problems
+func (pm *ProblemMap) Len() int {
+	return len(pm.Problems)
+}
+
+// UnmarshalYAML handles polymorphic deserialization of problems while preserving order
 func (pm *ProblemMap) UnmarshalYAML(node *yaml.Node) error {
 	if node.Kind != yaml.MappingNode {
 		return fmt.Errorf("problems must be a mapping, got %v", node.Kind)
 	}
 
-	*pm = make(ProblemMap)
+	pm.Problems = make([]OrderedProblem, 0)
+	pm.byID = make(map[string]Problem)
 
-	// Iterate through key-value pairs
+	// Iterate through key-value pairs (order is preserved in yaml.Node)
 	for i := 0; i < len(node.Content); i += 2 {
 		keyNode := node.Content[i]
 		valueNode := node.Content[i+1]
@@ -73,7 +97,8 @@ func (pm *ProblemMap) UnmarshalYAML(node *yaml.Node) error {
 			return fmt.Errorf("problem %s: unknown type %q", problemID, typeCheck.Type)
 		}
 
-		(*pm)[problemID] = problem
+		pm.Problems = append(pm.Problems, OrderedProblem{ID: problemID, Problem: problem})
+		pm.byID[problemID] = problem
 	}
 
 	return nil
